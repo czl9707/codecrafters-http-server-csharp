@@ -30,6 +30,7 @@ internal class Program
                 HTTPRequest.FromString(requestString)
             );
 
+            // Console.WriteLine(response.AsString());
             await writer.WriteAsync(response.AsString());
             await writer.FlushAsync();
         }
@@ -37,13 +38,24 @@ internal class Program
 
     private static HTTPResponse RequestHandler(HTTPRequest request)
     {
+        HTTPResponse response;
         if (request.Path == "/")
         {
-            return new OK();
+            response = new OK();
+        }
+        else if (request.Path.StartsWith("/echo"))
+        {
+            var content = request.Path.Substring("/echo/".Length);
+            response = new OK();
+            response.Content = content;
+            response.Headers.Add("Content-Length", content.Length.ToString());
+            response.Headers.Add("Content-Type", "text/plain");
         }
         else
         {
-            return new NotFound();
+            response = new NotFound();
         }
+
+        return response;
     }
 }

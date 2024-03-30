@@ -1,7 +1,12 @@
+using System.Text;
+
 namespace MyHttpServer.Model.Response;
 
 internal abstract class HTTPResponse
 {
+    private const string NEWLINE = "\r\n";
+    internal string Content { get; set; } = string.Empty;
+    internal Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
     internal string HttpVersion { get; private set; }
     internal abstract int Code { get; }
     internal abstract string Name { get; }
@@ -12,7 +17,17 @@ internal abstract class HTTPResponse
 
     internal string AsString()
     {
-        return $"HTTP/{this.HttpVersion} {this.Code} {this.Name}\r\n\r\n";
+        var sb = new StringBuilder();
+        sb.Append($"HTTP/{this.HttpVersion} {this.Code} {this.Name}{NEWLINE}");
+
+        foreach (var (key, value) in this.Headers)
+        {
+            sb.Append($"{key}: {value}{NEWLINE}");
+        }
+        sb.Append(NEWLINE);
+        sb.Append(this.Content);
+
+        return sb.ToString();
     }
 }
 
