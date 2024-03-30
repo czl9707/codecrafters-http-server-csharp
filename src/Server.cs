@@ -17,28 +17,27 @@ internal class Program
         {
             using var socket = server.AcceptSocket();
             using var stream = new NetworkStream(socket);
-            using var writer = new StreamWriter(stream);
             using var reader = new StreamReader(stream);
+            using var writer = new StreamWriter(stream);
 
-            var requestString = await reader.ReadLineAsync();
-            if (string.IsNullOrEmpty(requestString))
-            {
-                break;
-            }
-
-            var response = RequestHandler(
-                HTTPRequest.FromString(requestString)
-            );
-
-            // Console.WriteLine(response.AsString());
-            await writer.WriteAsync(response.AsString());
-            await writer.FlushAsync();
+            await RequestHandler(reader, writer);
         }
     }
 
-    private static HTTPResponse RequestHandler(HTTPRequest request)
+    private static async Task RequestHandler(StreamReader reader, StreamWriter writer)
     {
+        var buffer = new char[1024];
+        int bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length);
+        if (bytesRead == 0)
+        {
+            return;
+        }
+
+        var requestString = new StringBuilder().Append(buffer, 0, bytesRead).ToString();
+
+        var request = HTTPRequest.FromString(requestString);
         HTTPResponse response;
+
         if (request.Path == "/")
         {
             response = new OK();
@@ -53,7 +52,7 @@ internal class Program
         }
         else if (request.Path.StartsWith("/user-agent"))
         {
-            request.Headers.TryGetValue("User-Agent", out var content);
+            request.Headers.TryGetValue("user-agent", out var content);
             content = content ?? string.Empty;
 
             response = new OK();
@@ -66,6 +65,8 @@ internal class Program
             response = new NotFound();
         }
 
-        return response;
+        // Console.WriteLine(response.AsString());
+        await writer.WriteAsync(response.AsString());
+        await writer.FlushAsync();
     }
 }

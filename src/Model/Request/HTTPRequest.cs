@@ -37,8 +37,10 @@ internal class HTTPRequest
             {
                 break;
             }
-            var kvpStrings = line.Split(":", 2, StringSplitOptions.RemoveEmptyEntries);
-            headers.Add(kvpStrings.ElementAt(0), kvpStrings.ElementAt(1));
+            var kvpStrings = line.Split(":", 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            headers.Add(
+                kvpStrings.ElementAt(0).ToLowerInvariant(),
+                kvpStrings.ElementAt(1).ToLowerInvariant());
         }
 
         return new HTTPRequest(method, path, version, headers);
