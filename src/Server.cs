@@ -51,6 +51,16 @@ internal class Program
             response.Headers.Add("Content-Length", content.Length.ToString());
             response.Headers.Add("Content-Type", "text/plain");
         }
+        else if (request.Path.StartsWith("/user-agent"))
+        {
+            request.Headers.TryGetValue("User-Agent", out var content);
+            content = content ?? string.Empty;
+
+            response = new OK();
+            response.Content = content;
+            response.Headers.Add("Content-Length", content.Length.ToString());
+            response.Headers.Add("Content-Type", "text/plain");
+        }
         else
         {
             response = new NotFound();
