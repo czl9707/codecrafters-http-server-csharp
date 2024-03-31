@@ -48,7 +48,7 @@ internal class Program
                 return String.Empty;
             }
 
-            return new StringBuilder().Append(buffer).ToString();
+            return new StringBuilder().Append(buffer, 0, bytesRead).ToString();
         }
         catch (Exception e)
         {
@@ -91,7 +91,7 @@ internal class Program
                 response.Headers.Add("Content-Length", content.Length.ToString());
                 response.Headers.Add("Content-Type", "text/plain");
             }
-            else if (request.Path.StartsWith("/files"))
+            else if (request.Path.StartsWith("/files") && request.Method.ToLower() == "get")
             {
                 var filename = request.Path.Substring("/files/".Length);
                 if (Program.Directory is null)
@@ -113,6 +113,23 @@ internal class Program
                     response.Content = fileContent;
                     response.Headers.Add("Content-Length", fileContent.Length.ToString());
                     response.Headers.Add("Content-Type", "application/octet-stream");
+                }
+            }
+            else if (request.Path.StartsWith("/files") && request.Method.ToLower() == "post")
+            {
+                var filename = request.Path.Substring("/files/".Length);
+                if (Program.Directory is null)
+                {
+                    response = new NotFound();
+                }
+                else
+                {
+                    var fullPath = Path.Combine(Program.Directory, filename);
+                    var fileWriter = new StreamWriter(File.Open(fullPath, FileMode.Create));
+                    await fileWriter.WriteAsync(request.Body);
+                    await fileWriter.FlushAsync();
+
+                    response = new Created();
                 }
             }
             else
