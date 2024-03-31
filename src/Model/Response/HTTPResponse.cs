@@ -44,3 +44,11 @@ internal class NotFound : HTTPResponse
     internal override string Name => "Not Found";
     public NotFound(string httpVersion = "1.1") : base(httpVersion) { }
 }
+
+internal class Created : HTTPResponse
+{
+    internal override int Code => 201;
+    internal override string Name => "Created";
+    public Created(string httpVersion = "1.1") : base(httpVersion) { }
+}
+

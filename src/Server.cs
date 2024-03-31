@@ -5,6 +5,7 @@ using System.IO;
 using System.CommandLine;
 using MyHttpServer.Model.Request;
 using MyHttpServer.Model.Response;
+using System.ComponentModel;
 
 namespace MyHttpServer;
 
@@ -64,67 +65,64 @@ internal class Program
             using var reader = new StreamReader(stream);
             using var writer = new StreamWriter(stream);
 
-            while (socket.Connected)
+            var requestString = await ReadStringAsync(reader);
+            var request = HTTPRequest.FromString(requestString);
+            HTTPResponse response;
+
+            if (request.Path == "/")
             {
-                var requestString = await ReadStringAsync(reader);
-                var request = HTTPRequest.FromString(requestString);
-                HTTPResponse response;
+                response = new OK();
+            }
+            else if (request.Path.StartsWith("/echo"))
+            {
+                var content = request.Path.Substring("/echo/".Length);
+                response = new OK();
+                response.Content = content;
+                response.Headers.Add("Content-Length", content.Length.ToString());
+                response.Headers.Add("Content-Type", "text/plain");
+            }
+            else if (request.Path.StartsWith("/user-agent"))
+            {
+                request.Headers.TryGetValue("user-agent", out var content);
+                content = content ?? string.Empty;
 
-                if (request.Path == "/")
-                {
-                    response = new OK();
-                }
-                else if (request.Path.StartsWith("/echo"))
-                {
-                    var content = request.Path.Substring("/echo/".Length);
-                    response = new OK();
-                    response.Content = content;
-                    response.Headers.Add("Content-Length", content.Length.ToString());
-                    response.Headers.Add("Content-Type", "text/plain");
-                }
-                else if (request.Path.StartsWith("/user-agent"))
-                {
-                    request.Headers.TryGetValue("user-agent", out var content);
-                    content = content ?? string.Empty;
-
-                    response = new OK();
-                    response.Content = content;
-                    response.Headers.Add("Content-Length", content.Length.ToString());
-                    response.Headers.Add("Content-Type", "text/plain");
-                }
-                else if (request.Path.StartsWith("/files"))
-                {
-                    var filename = request.Path.Substring("/files/".Length);
-                    if (Program.Directory is null)
-                    {
-                        response = new NotFound();
-                    }
-                    else if (!File.Exists(Path.Combine(Program.Directory, filename)))
-                    {
-                        response = new NotFound();
-                    }
-                    else
-                    {
-                        var fullPath = Path.Combine(Program.Directory, filename);
-                        var fileContent = await ReadStringAsync(
-                            new StreamReader(File.Open(fullPath, FileMode.Open))
-                        );
-
-                        response = new OK();
-                        response.Content = fileContent;
-                        response.Headers.Add("Content-Length", fileContent.Length.ToString());
-                        response.Headers.Add("Content-Type", "application/octet-stream");
-                    }
-                }
-                else
+                response = new OK();
+                response.Content = content;
+                response.Headers.Add("Content-Length", content.Length.ToString());
+                response.Headers.Add("Content-Type", "text/plain");
+            }
+            else if (request.Path.StartsWith("/files"))
+            {
+                var filename = request.Path.Substring("/files/".Length);
+                if (Program.Directory is null)
                 {
                     response = new NotFound();
                 }
+                else if (!File.Exists(Path.Combine(Program.Directory, filename)))
+                {
+                    response = new NotFound();
+                }
+                else
+                {
+                    var fullPath = Path.Combine(Program.Directory, filename);
+                    var fileContent = await ReadStringAsync(
+                        new StreamReader(File.Open(fullPath, FileMode.Open))
+                    );
 
-                // Console.WriteLine(response.AsString());
-                await writer.WriteAsync(response.AsString());
-                await writer.FlushAsync();
+                    response = new OK();
+                    response.Content = fileContent;
+                    response.Headers.Add("Content-Length", fileContent.Length.ToString());
+                    response.Headers.Add("Content-Type", "application/octet-stream");
+                }
             }
+            else
+            {
+                response = new NotFound();
+            }
+
+            // Console.WriteLine(response.AsString());
+            await writer.WriteAsync(response.AsString());
+            await writer.FlushAsync();
         }
     }
 }
